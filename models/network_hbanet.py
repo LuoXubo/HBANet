@@ -1,7 +1,8 @@
-# -----------------------------------------------------------------------------------
-# SwinIR: Image Restoration Using Swin Transformer, https://arxiv.org/abs/2108.10257
-# Originally Written by Ze Liu, Modified by Jingyun Liang.
-# -----------------------------------------------------------------------------------
+"""
+@Description :   
+@Author      :   Xubo Luo 
+@Time        :   2025/02/15 16:08:24
+"""
 
 import math
 import torch
@@ -1407,7 +1408,7 @@ class SwinFusion(nn.Module):
         return x
 
     def forward(self, A, B):
-        # print("Initializing the model")
+        print("Initializing the model")
         x = A
         y = B
         H, W = x.shape[2:]
@@ -1481,9 +1482,11 @@ if __name__ == '__main__':
     model = SwinFusion(upscale=2, img_size=(height, width),
                    window_size=window_size, img_range=1., depths=[6, 6, 6, 6],
                    embed_dim=60, num_heads=[6, 6, 6, 6], mlp_ratio=2, upsampler='pixelshuffledirect')
-    print(model)
+    # print(model)
     print(height, width, model.flops() / 1e9)
 
-    x = torch.randn((1, 3, height, width))
-    x = model(x)
-    print(x.shape)
+    image1 = torch.randn(1, 1, height, width)
+    image2 = torch.randn(1, 1, height, width)
+    
+    out = model(image1, image2)
+    print(out.shape)
