@@ -1449,6 +1449,8 @@ if __name__ == '__main__':
     print(model)
     print(height, width, model.flops() / 1e9)
 
-    x = torch.randn((1, 3, height, width))
-    x = model(x)
-    print(x.shape)
+    image1 = torch.randn(1, 1, height, width)
+    image2 = torch.randn(1, 1, height, width)
+    
+    out = model(image1, image2)
+    print(out.shape)
