@@ -214,7 +214,7 @@ def define_G(opt):
                    upsampler=opt_net['upsampler'],
                    resi_connection=opt_net['resi_connection'])
     elif net_type == 'swinfusion1':
-        from models.network_swinfusion1 import SwinFusion as net
+        from models.network_hbanet import SwinFusion as net
         netG = net(upscale=opt_net['upscale'],
                    in_chans=opt_net['in_chans'],
                    img_size=opt_net['img_size'],

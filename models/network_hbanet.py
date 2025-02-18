@@ -1,10 +1,10 @@
-"""
-@Description :   
-@Author      :   Xubo Luo 
-@Time        :   2025/02/15 16:08:24
-"""
+# -----------------------------------------------------------------------------------
+# SwinIR: Image Restoration Using Swin Transformer, https://arxiv.org/abs/2108.10257
+# Originally Written by Ze Liu, Modified by Jingyun Liang.
+# -----------------------------------------------------------------------------------
 
 import math
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -793,34 +793,33 @@ class RSTB(nn.Module):
                                          downsample=downsample,
                                          use_checkpoint=use_checkpoint)
 
-        if resi_connection == '1conv':
-            self.conv = nn.Conv2d(dim, dim, 3, 1, 1)
-        elif resi_connection == '3conv':
-            # to save parameters and memory
-            self.conv = nn.Sequential(nn.Conv2d(dim, dim // 4, 3, 1, 1), nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                                      nn.Conv2d(dim // 4, dim // 4, 1, 1, 0),
-                                      nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                                      nn.Conv2d(dim // 4, dim, 3, 1, 1))
+        # if resi_connection == '1conv':
+        #     self.conv = nn.Conv2d(dim, dim, 3, 1, 1)
+        # elif resi_connection == '3conv':
+        #     # to save parameters and memory
+        #     self.conv = nn.Sequential(nn.Conv2d(dim, dim // 4, 3, 1, 1), nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        #                               nn.Conv2d(dim // 4, dim // 4, 1, 1, 0),
+        #                               nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        #                               nn.Conv2d(dim // 4, dim, 3, 1, 1))
 
-        self.patch_embed = PatchEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
-            norm_layer=None)
+        # self.patch_embed = PatchEmbed(
+        #     img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
+        #     norm_layer=None)
 
-        self.patch_unembed = PatchUnEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
-            norm_layer=None)
+        # self.patch_unembed = PatchUnEmbed(
+        #     img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
+        #     norm_layer=None)
 
     def forward(self, x, x_size):
         # return self.patch_embed(self.conv(self.patch_unembed(self.residual_group(x, x_size), x_size))) + x
-        return self.residual_group(x, x_size) + x
+        # return self.residual_group(x, x_size) + x
+        return self.residual_group(x, x_size)
 
     def flops(self):    
         flops = 0
         flops += self.residual_group.flops()
         H, W = self.input_resolution
         flops += H * W * self.dim * self.dim * 9
-        flops += self.patch_embed.flops()
-        flops += self.patch_unembed.flops()
 
         return flops
 
@@ -892,40 +891,44 @@ class CRSTB(nn.Module):
                                          norm_layer=norm_layer,
                                          downsample=downsample,
                                          use_checkpoint=use_checkpoint)
-        if resi_connection == '1conv':
-            self.conv_A = nn.Conv2d(dim, dim, 3, 1, 1)
-            self.conv_B = nn.Conv2d(dim, dim, 3, 1, 1)
-        elif resi_connection == '3conv':
-            # to save parameters and memory
-            self.conv_A = nn.Sequential(nn.Conv2d(dim, dim // 4, 3, 1, 1), nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                                      nn.Conv2d(dim // 4, dim // 4, 1, 1, 0),
-                                      nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                                      nn.Conv2d(dim // 4, dim, 3, 1, 1))
-            self.conv_B = nn.Sequential(nn.Conv2d(dim, dim // 4, 3, 1, 1), nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                                      nn.Conv2d(dim // 4, dim // 4, 1, 1, 0),
-                                      nn.LeakyReLU(negative_slope=0.2, inplace=True),
-                                      nn.Conv2d(dim // 4, dim, 3, 1, 1))
+        # if resi_connection == '1conv':
+        #     self.conv_A = nn.Conv2d(dim, dim, 3, 1, 1)
+        #     self.conv_B = nn.Conv2d(dim, dim, 3, 1, 1)
+        # elif resi_connection == '3conv':
+        #     # to save parameters and memory
+        #     self.conv_A = nn.Sequential(nn.Conv2d(dim, dim // 4, 3, 1, 1), nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        #                               nn.Conv2d(dim // 4, dim // 4, 1, 1, 0),
+        #                               nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        #                               nn.Conv2d(dim // 4, dim, 3, 1, 1))
+        #     self.conv_B = nn.Sequential(nn.Conv2d(dim, dim // 4, 3, 1, 1), nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        #                               nn.Conv2d(dim // 4, dim // 4, 1, 1, 0),
+        #                               nn.LeakyReLU(negative_slope=0.2, inplace=True),
+        #                               nn.Conv2d(dim // 4, dim, 3, 1, 1))
 
-        self.patch_embed = PatchEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
-            norm_layer=None)
+        # self.patch_embed = PatchEmbed(
+        #     img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
+        #     norm_layer=None)
 
-        self.patch_unembed = PatchUnEmbed(
-            img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
-            norm_layer=None)
+        # self.patch_unembed = PatchUnEmbed(
+        #     img_size=img_size, patch_size=patch_size, in_chans=0, embed_dim=dim,
+        #     norm_layer=None)
 
     def forward(self, x, y, x_size):
         ## Intra-Modal Fusion
-        x = self.residual_group_A(x, x_size) + x
-        y = self.residual_group_B(y, x_size) + y
+        # x = self.residual_group_A(x, x_size) + x
+        # y = self.residual_group_B(y, x_size) + y
+        # 不使用残差连接
+        x = self.residual_group_A(x, x_size)
+        y = self.residual_group_B(y, x_size)
         ## Inter-Modal Fusion
         x1 = x
         y1 = y
         x, y = self.residual_group(x1, y1, x_size)
         # x = self.patch_embed(self.conv_A(self.patch_unembed(x, x_size))) + x1
         # y = self.patch_embed(self.conv_B(self.patch_unembed(y, x_size))) + y1
-        x = x + x1
-        y = y + y1
+        # 不使用残差连接
+        # x = x + x1
+        # y = y + y1
         return x, y
 
     def flops(self):
@@ -934,8 +937,6 @@ class CRSTB(nn.Module):
         flops += self.residual_group_B.flops()
         H, W = self.input_resolution
         flops += H * W * self.dim * self.dim * 9
-        flops += self.patch_embed.flops()
-        flops += self.patch_unembed.flops()
 
         return flops
 
@@ -1091,8 +1092,8 @@ class SwinFusion(nn.Module):
     """
 
     def __init__(self, img_size=64, patch_size=1, in_chans=1,
-                 embed_dim=96, Ex_depths=[6, 6], Fusion_depths=[2, 2, 2], Re_depths=[6,6], 
-                 Ex_num_heads=[6, 6], Fusion_num_heads=[6, 6, 6], Re_num_heads=[6, 6],
+                 embed_dim=96, Ex_depths=[4], Fusion_depths=[2, 2], Re_depths=[4], 
+                 Ex_num_heads=[6], Fusion_num_heads=[6, 6], Re_num_heads=[6],
                  window_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
@@ -1252,10 +1253,10 @@ class SwinFusion(nn.Module):
 
         # build the last conv layer in deep feature extraction
         if resi_connection == '1conv':
-            self.conv_after_body_Ex_A = nn.Conv2d(embed_dim, embed_dim, 3, 1, 1)
-            self.conv_after_body_Ex_A = nn.Conv2d(embed_dim, embed_dim, 3, 1, 1)
+            # self.conv_after_body_Ex_A = nn.Conv2d(embed_dim, embed_dim, 3, 1, 1)
+            # self.conv_after_body_Ex_B = nn.Conv2d(embed_dim, embed_dim, 3, 1, 1)
             self.conv_after_body_Fusion = nn.Conv2d(2 * embed_dim, embed_dim, 3, 1, 1)
-            self.conv_after_body_Re = nn.Conv2d(embed_dim, embed_dim, 3, 1, 1)
+            # self.conv_after_body_Re = nn.Conv2d(embed_dim, embed_dim, 3, 1, 1)
 
         elif resi_connection == '3conv':
             # to save parameters and memory
@@ -1350,12 +1351,9 @@ class SwinFusion(nn.Module):
 
         x = self.norm_Ex_B(x)  # B L C
         x = self.patch_unembed(x, x_size)
-
         return x
 
     def forward_features_Fusion(self, x, y):
-        input_x = x
-        input_y = y        
         x_size = (x.shape[2], x.shape[3])
         x = self.patch_embed(x)
         y = self.patch_embed(y)
@@ -1375,14 +1373,6 @@ class SwinFusion(nn.Module):
 
         y = self.norm_Fusion_B(y)  # B L C
         y = self.patch_unembed(y, x_size)
-        # x = x.unsqueeze(0)
-        # y = y.unsqueeze(0)
-        # weights = torch.cat([x, y], 0)
-        # weights = self.softmax(weights)
-        # wa = weights[0, :]
-        # wb = weights[1, :]
-        # x = wa * input_x + wb * input_y
-        # concatnate x,y in the channel dimension
         x = torch.cat([x, y], 1)
         ## Downsample the feature in the channel dimension
         x = self.lrelu(self.conv_after_body_Fusion(x))
@@ -1401,14 +1391,14 @@ class SwinFusion(nn.Module):
 
         x = self.norm_Re(x)  # B L C
         x = self.patch_unembed(x, x_size)
-        ## Convolution 
+        # Convolution 
         x = self.lrelu(self.conv_last1(x))
         x = self.lrelu(self.conv_last2(x))
         x = self.conv_last3(x) 
         return x
 
     def forward(self, A, B):
-        print("Initializing the model")
+        # print("Initializing the model")
         x = A
         y = B
         H, W = x.shape[2:]
@@ -1426,32 +1416,7 @@ class SwinFusion(nn.Module):
         x = self.forward_features_Ex_A(x)
         y = self.forward_features_Ex_B(y)
         x = self.forward_features_Fusion(x, y)
-        x = self.forward_features_Re(x)
-        # if self.upsampler == 'pixelshuffle':
-        #     # for classical SR
-        #     x = self.conv_first(x)
-        #     x = self.conv_after_body(self.forward_features(x)) + x
-        #     x = self.conv_before_upsample(x)
-        #     x = self.conv_last(self.upsample(x))
-        # elif self.upsampler == 'pixelshuffledirect':
-        #     # for lightweight SR
-        #     x = self.conv_first(x)
-        #     x = self.conv_after_body(self.forward_features(x)) + x
-        #     x = self.upsample(x)
-        # elif self.upsampler == 'nearest+conv':
-        #     # for real-world SR
-        #     x = self.conv_first(x)
-        #     x = self.conv_after_body(self.forward_features(x)) + x
-        #     x = self.conv_before_upsample(x)
-        #     x = self.lrelu(self.conv_up1(torch.nn.functional.interpolate(x, scale_factor=2, mode='nearest')))
-        #     x = self.lrelu(self.conv_up2(torch.nn.functional.interpolate(x, scale_factor=2, mode='nearest')))
-        #     x = self.conv_last(self.lrelu(self.conv_hr(x)))
-        # else:
-        #     # for image denoising and JPEG compression artifact reduction
-        #     x_1 = self.lrelu(self.conv_first1(x))
-        #     x_first = self.lrelu(self.conv_first2(x_1))
-        #     res = self.conv_after_body(self.forward_features(x_first)) + x_first
-                   
+        x = self.forward_features_Re(x)                  
         
         x = x / self.img_range + self.mean
         return x[:, :, :H*self.upscale, :W*self.upscale]
@@ -1470,7 +1435,7 @@ class SwinFusion(nn.Module):
         for i, layer in enumerate(self.layers_Re):
             flops += layer.flops()
         flops += H * W * 3 * self.embed_dim * self.embed_dim
-        flops += self.upsample.flops()
+        # flops += self.upsample.flops()
         return flops
 
 
@@ -1481,12 +1446,13 @@ if __name__ == '__main__':
     width = (720 // upscale // window_size + 1) * window_size
     model = SwinFusion(upscale=2, img_size=(height, width),
                    window_size=window_size, img_range=1., depths=[6, 6, 6, 6],
-                   embed_dim=60, num_heads=[6, 6, 6, 6], mlp_ratio=2, upsampler='pixelshuffledirect')
+                   embed_dim=60, num_heads=[6, 6, 6, 6], mlp_ratio=2, upsampler=None, resi_connection='1conv')
     # print(model)
     print(height, width, model.flops() / 1e9)
 
     image1 = torch.randn(1, 1, height, width)
     image2 = torch.randn(1, 1, height, width)
+    
     
     out = model(image1, image2)
     print(out.shape)
