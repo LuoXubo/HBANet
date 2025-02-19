@@ -9,7 +9,7 @@ import torch
 import requests
 import time
 import sys
-from models.network_hbanet import SwinFusion as net
+from models.network_hbanet import HBANet as net
 from utils import utils_image as util
 from data.dataloder import Dataset as D
 from torch.utils.data import DataLoader
