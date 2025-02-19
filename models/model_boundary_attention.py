@@ -310,5 +310,9 @@ if __name__ == "__main__":
     tgt = torch.randn(B, C, H, W)
     src = torch.randn(B, 1, C)
     model = BoundaryCrossAttention(C, 1, BAG_type='2D', Atrous=True)
+    
     out, weights = model(tgt, src)
+    out_weighted = torch.mul(out, weights)
+    
     print(out.shape, weights.shape)
+    print(out_weighted.shape)

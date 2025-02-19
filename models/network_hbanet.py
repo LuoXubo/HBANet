@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
+from model_boundary_attention import BoundaryCrossAttention
 
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
@@ -1063,9 +1064,9 @@ class UpsampleOneStep(nn.Sequential):
         return flops
 
 
-class SwinFusion(nn.Module):
-    r""" SwinIR
-        A PyTorch impl of : `SwinIR: Image Restoration Using Swin Transformer`, based on Swin Transformer.
+class HBANet(nn.Module):
+    r""" HBANet
+        A PyTorch impl of : `HBANet: A hybrid boundary-aware attention network for infrared and visible image fusion.
 
     Args:
         img_size (int | tuple(int)): Input image size. Default 64
@@ -1099,7 +1100,7 @@ class SwinFusion(nn.Module):
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
                  use_checkpoint=False, upscale=2, img_range=1., upsampler='', resi_connection='1conv',
                  **kwargs):
-        super(SwinFusion, self).__init__()
+        super(HBANet, self).__init__()
         num_out_ch = in_chans
         num_feat = 64
         self.img_range = img_range
@@ -1130,6 +1131,11 @@ class SwinFusion(nn.Module):
         self.Ex_num_layers = len(Ex_depths)
         self.Fusion_num_layers = len(Fusion_depths)
         self.Re_num_layers = len(Re_depths)
+        
+        self.pool_A = nn.AdaptiveAvgPool2d((1, 1))
+        self.pool_B = nn.AdaptiveAvgPool2d((1, 1))
+        self.ba_A = BoundaryCrossAttention(embed_dim, 1, BAG_type='2D', Atrous=True)
+        self.ba_B = BoundaryCrossAttention(embed_dim, 1, BAG_type='2D', Atrous=True)
 
         self.embed_dim = embed_dim
         self.ape = ape
@@ -1322,24 +1328,37 @@ class SwinFusion(nn.Module):
 
     def forward_features_Ex_A(self, x):
         x = self.lrelu(self.conv_first1_A(x))
-        x = self.lrelu(self.conv_first2_A(x))           
+        x = self.lrelu(self.conv_first2_A(x))     
+        
+        laten_tensor = self.pool_A(x)
+        laten_tensor = laten_tensor.squeeze(-1)
+        laten_tensor = laten_tensor.permute(0, 2, 1)    # B, 1, C    
+        x, weights = self.ba_A(x, laten_tensor)
+        x = torch.mul(x, weights)
+        
         x_size = (x.shape[2], x.shape[3])
         x = self.patch_embed(x)
         if self.ape:
             x = x + self.absolute_pos_embed
         x = self.pos_drop(x)
-
+        
         for layer in self.layers_Ex_A:
             x = layer(x, x_size)
-
+            
         x = self.norm_Ex_A(x)  # B L C
         x = self.patch_unembed(x, x_size)
-
         return x
 
     def forward_features_Ex_B(self, x):    
         x = self.lrelu(self.conv_first1_A(x))
-        x = self.lrelu(self.conv_first2_A(x))      
+        x = self.lrelu(self.conv_first2_A(x))  
+        
+        laten_tensor = self.pool_B(x)
+        laten_tensor = laten_tensor.squeeze(-1)
+        laten_tensor = laten_tensor.permute(0, 2, 1)    # B, 1, C    
+        x, weights = self.ba_B(x, laten_tensor)
+        x = torch.mul(x, weights)
+            
         x_size = (x.shape[2], x.shape[3])
         x = self.patch_embed(x)
         if self.ape:
@@ -1435,7 +1454,9 @@ class SwinFusion(nn.Module):
         for i, layer in enumerate(self.layers_Re):
             flops += layer.flops()
         flops += H * W * 3 * self.embed_dim * self.embed_dim
-        # flops += self.upsample.flops()
+        
+        if self.upsampler == 'pixelshuffle' or self.upsampler == 'pixelshuffledirect':
+            flops += self.upsample.flops()
         return flops
 
 
@@ -1444,14 +1465,14 @@ if __name__ == '__main__':
     window_size = 8
     height = (1024 // upscale // window_size + 1) * window_size
     width = (720 // upscale // window_size + 1) * window_size
-    model = SwinFusion(upscale=2, img_size=(height, width),
+    model = HBANet(upscale=2, in_chans=3, img_size=(height, width),
                    window_size=window_size, img_range=1., depths=[6, 6, 6, 6],
                    embed_dim=60, num_heads=[6, 6, 6, 6], mlp_ratio=2, upsampler=None, resi_connection='1conv')
     # print(model)
-    print(height, width, model.flops() / 1e9)
+    # print(height, width, model.flops() / 1e9)
 
-    image1 = torch.randn(1, 1, height, width)
-    image2 = torch.randn(1, 1, height, width)
+    image1 = torch.randn(1, 3, height, width)
+    image2 = torch.randn(1, 3, height, width)
     
     
     out = model(image1, image2)
