@@ -202,17 +202,15 @@ def define_G(opt):
                    resi_connection=opt_net['resi_connection'])
     elif net_type == 'hbanet':
         from models.network_hbanet import HBANet as net
-        netG = net(upscale=opt_net['upscale'],
-                   in_chans=opt_net['in_chans'],
-                   img_size=opt_net['img_size'],
-                   window_size=opt_net['window_size'],
-                   img_range=opt_net['img_range'],
-                #    depths=opt_net['depths'],
-                   embed_dim=opt_net['embed_dim'],
-                   num_heads=opt_net['num_heads'],
-                   mlp_ratio=opt_net['mlp_ratio'],
-                   upsampler=opt_net['upsampler'],
-                   resi_connection=opt_net['resi_connection'])
+        netG = net(
+            in_chans=opt_net.get('in_chans', 1),
+            out_chans=opt_net.get('out_chans'),
+            base_channels=opt_net.get('base_channels', opt_net.get('embed_dim', 64)),
+            encoder_res_blocks=opt_net.get('encoder_blocks', opt_net.get('depths', [4])[0] if opt_net.get('depths') else 4),
+            decoder_res_blocks=opt_net.get('decoder_blocks', 2),
+            num_heads=opt_net.get('num_heads', 4),
+            img_range=opt_net.get('img_range', 1.0),
+        )
 
     # ----------------------------------------
     # others

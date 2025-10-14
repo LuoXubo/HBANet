@@ -126,6 +126,11 @@ class ModelPlain(ModelBase):
         elif G_lossfn_type == 'med':            
             from models.loss_med import fusion_loss_med
             self.G_lossfn = fusion_loss_med().to(self.device)
+        elif G_lossfn_type == 'hybrid':
+            from models.loss_hybrid import HybridFusionLoss, HybridLossWeights
+            weight_cfg = self.opt_train.get('G_hybrid_weights', {})
+            weights = HybridLossWeights(**weight_cfg)
+            self.G_lossfn = HybridFusionLoss(weights).to(self.device)
         elif G_lossfn_type == 'gt':            
             from models.loss_gt import fusion_loss_gt
             self.G_lossfn = fusion_loss_gt().to(self.device)
@@ -193,6 +198,9 @@ class ModelPlain(ModelBase):
         elif G_lossfn_type in ['mef', 'mff', 'vif', 'nir', 'med']:
             total_loss, loss_text, loss_int, loss_ssim = self.G_lossfn(self.A, self.B, self.E)
             G_loss = self.G_lossfn_weight * total_loss      
+        elif G_lossfn_type == 'hybrid':
+            total_loss, loss_structure, loss_intensity, loss_variation = self.G_lossfn(self.A, self.B, self.E)
+            G_loss = self.G_lossfn_weight * total_loss
         else:
             G_loss = self.G_lossfn_weight * self.G_lossfn(self.E, self.GT)
         G_loss.backward()
@@ -223,6 +231,10 @@ class ModelPlain(ModelBase):
             self.log_dict['Text_loss'] = loss_text.item()
             self.log_dict['Int_loss'] = loss_int.item()
             self.log_dict['SSIM_loss'] = loss_ssim.item()
+        elif G_lossfn_type == 'hybrid':
+            self.log_dict['Structure_loss'] = loss_structure.item()
+            self.log_dict['Intensity_loss'] = loss_intensity.item()
+            self.log_dict['Variation_loss'] = loss_variation.item()
 
         if self.opt_train['E_decay'] > 0:
             self.update_E(self.opt_train['E_decay'])
