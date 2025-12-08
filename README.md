@@ -2,6 +2,12 @@
 
 Official PyTorch implementation of **HBANet**, introduced in “HBANet: A Hybrid Boundary-Aware Attention Network for Infrared and Visible Image Fusion” (CVIU 2024).
 
+Xubo Luo<sup>1</sup>, Jinshuo Zhang<sup>2</sup>, Liping Wang<sup>3</sup>, Dongmei Niu<sup>2</sup>
+
+<sup>1</sup> Shanghai University of Finance and Ecnomics
+<sup>2</sup> Jinan University
+<sup>3</sup> Jinan Fourth Hospital
+
 <p align="center">
 <em>Seamlessly fusing thermal saliency and visible detail via hybrid attention.</em>
 </p>
